@@ -380,6 +380,10 @@ const sun = new THREE.DirectionalLight(0xfff1d6, 2.4);
 sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
 const sc = sun.shadow.camera; sc.left = -45; sc.right = 45; sc.top = 45; sc.bottom = -45; sc.near = 1; sc.far = 260; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.04;
 scene.add(sun); scene.add(sun.target);
+// moonlight + a headlamp on the photographer, so nights stay readable
+const moon = new THREE.DirectionalLight(0xa9bdf2, 0); moon.castShadow = false; scene.add(moon); scene.add(moon.target);
+const headlamp = new THREE.PointLight(0xffe6bf, 0, 26, 1.4); scene.add(headlamp);
+const hemiDaySky = new THREE.Color(0xd7ecff), hemiDayGround = new THREE.Color(0x3b4a2e), hemiNightSky = new THREE.Color(0x8ea6e0), hemiNightGround = new THREE.Color(0x2c3a48);
 
 // --- terrain mesh ---
 const SIZE = 560, SEG = 210;
@@ -1342,7 +1346,7 @@ let waiting = false, dayT = 0.315, playTime = 0, raining = 0, rainTarget = 0, ne
 const DAY_LEN = 720; // seconds per in-game day
 function clockText() { const m = Math.floor(dayT * 1440); return `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; }
 function weatherText() { return raining > 0.5 ? "Hujan" : raining > 0.15 ? "Gerimis" : "Cerah"; }
-const sunV = new THREE.Vector3(), fogDay = new THREE.Color(0xc4d3c4), fogRain = new THREE.Color(0x8e9a98), fogNight = new THREE.Color(0x0d1418), fogC = new THREE.Color();
+const sunV = new THREE.Vector3(), fogDay = new THREE.Color(0xc4d3c4), fogRain = new THREE.Color(0x8e9a98), fogNight = new THREE.Color(0x2a3a52), fogC = new THREE.Color();
 function updateSky(dt) {
   const tdt = dt * (waiting ? 45 : 1);
   const prevDayT = dayT; dayT = (dayT + tdt / DAY_LEN) % 1; if (dayT < prevDayT) { dayCount++; rollCat(); }
@@ -1356,10 +1360,14 @@ function updateSky(dt) {
   sun.position.copy(player.pos).addScaledVector(sunV, 120); sun.target.position.copy(player.pos);
   sun.intensity = Math.max(0, elev) > 0 ? lerp(2.6, 0.5, raining) * smooth(0, 0.2, elev) : 0;
   sun.color.setHSL(0.09, 0.6, lerp(0.75, 0.9, smooth(0, 0.6, elev)));
-  hemi.intensity = lerp(0.14, lerp(1.25, 0.9, raining), dayK);
+  hemi.intensity = lerp(0.85, lerp(1.25, 0.9, raining), dayK);
+  hemi.color.copy(hemiNightSky).lerp(hemiDaySky, dayK); hemi.groundColor.copy(hemiNightGround).lerp(hemiDayGround, dayK);
+  const night = 1 - dayK;
+  moon.intensity = night * lerp(1.1, 0.6, raining); moon.position.copy(player.pos).addScaledVector(sunV, -120); moon.position.y = Math.max(moon.position.y, player.pos.y + 80); moon.target.position.copy(player.pos);
+  headlamp.intensity = night * 40; headlamp.position.set(player.pos.x, player.pos.y + 2.4, player.pos.z);
   fogC.copy(fogNight).lerp(fogDay, dayK).lerp(fogRain, raining * dayK * 0.9);
-  scene.fog.color.copy(fogC); scene.fog.density = (lerp(0.0028, 0.011, raining) + (1 - dayK) * 0.002) * lerp(1, 0.45, smooth(8, 30, camDist) + (travel ? 0.6 : 0));
-  renderer.toneMappingExposure = lerp(0.34, lerp(0.68, 0.52, raining), dayK) * (pm && hasReward("malam") ? lerp(2.4, 1, dayK) : 1);
+  scene.fog.color.copy(fogC); scene.fog.density = (lerp(0.0028, 0.011, raining) + (1 - dayK) * 0.0008) * lerp(1, 0.45, smooth(8, 30, camDist) + (travel ? 0.6 : 0));
+  renderer.toneMappingExposure = lerp(0.62, lerp(0.68, 0.52, raining), dayK) * (pm && hasReward("malam") ? lerp(1.8, 1, dayK) : 1);
   M.lampHead.emissiveIntensity = (1 - dayK) * 3 + raining * 0.6;
   water.material.color.setHSL(0.45, 0.25, lerp(0.05, 0.16, dayK));
   // lightning
