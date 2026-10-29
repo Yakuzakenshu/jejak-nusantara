@@ -219,7 +219,7 @@
   <div class="card">
     <div class="row" style="justify-content:space-between"><h2>Peta lapangan</h2><div class="maptools"><button type="button" id="mapIn" aria-label="Perbesar peta">＋</button><button type="button" id="mapOut" aria-label="Perkecil peta">－</button><button type="button" id="mapMe" aria-label="Pusatkan ke posisimu">⌖</button></div><button class="btn alt" type="button" data-close>Tutup</button></div>
     <canvas id="mapCanvas" width="520" height="520"></canvas>
-    <p style="font-size:13px"><b>Geser peta untuk menjelajah, scroll atau cubit untuk zoom. Klik lokasi bertanda ✈ untuk terbang ke sana.</b> Lokasi terbuka untuk lompat setelah kamu memotretnya. Lingkaran kosong: belum difoto. Satu-satunya jembatan ada di Sungai Sepaku.</p>
+    <p style="font-size:13px"><b>Klik lokasi mana saja untuk langsung terbang ke sana, tidak perlu berurutan.</b> Geser peta untuk menjelajah, scroll atau cubit untuk zoom. Lingkaran kosong: belum difoto. Lingkaran terisi: sudah masuk jurnal.</p>
   </div>
 </div>
 
@@ -1037,8 +1037,9 @@ function drawMap() {
     if (journal[p.id]) { x.fillStyle = "#F3EEE2"; x.fill(); } else { x.lineWidth = 2.5; x.strokeStyle = "#F3EEE2"; x.stroke(); }
     if (canGo) { x.beginPath(); x.arc(px, pz, 11, 0, TAU); x.lineWidth = 2; x.strokeStyle = "#B7793F"; x.stroke(); }
     const label = (canGo ? "✈ " : "") + p.name + (journal[p.id] ? " " + "★".repeat(journal[p.id].stars) : "");
-    const ly = pz + (mapView.z < 1.8 ? (p.id === "enggang" ? 20 : p.id === "ulin" ? -14 : 0) : 0) + (mapView.z >= 1.8 && p.id === "enggang" ? 18 : 0);
-    x.fillStyle = canGo ? "#B7793F" : "#0E1512"; x.fillRect(px + 12, ly - 9, x.measureText(label).width + 8, 17); x.fillStyle = canGo ? "#1E1A14" : "#F3EEE2"; x.fillText(label, px + 16, ly + 4);
+    const ly = pz + (mapView.z < 1.8 ? (p.id === "enggang" ? 20 : p.id === "ulin" ? -14 : p.id === "garuda" ? 22 : 0) : 0) + (mapView.z >= 1.8 && p.id === "enggang" ? 18 : 0);
+    const lx = p.id === "garuda" && mapView.z < 1.8 ? -x.measureText(label).width - 30 : 0;
+    x.fillStyle = canGo ? "#B7793F" : "#0E1512"; x.fillRect(px + 12 + lx, ly - 9, x.measureText(label).width + 8, 17); x.fillStyle = canGo ? "#1E1A14" : "#F3EEE2"; x.fillText(label, px + 16 + lx, ly + 4);
   }
   const [mx, mz] = P(player.pos.x, player.pos.z);
   x.save(); x.translate(mx, mz); x.rotate(-player.yaw + Math.PI); x.fillStyle = "#B7793F"; x.beginPath(); x.moveTo(0, -10); x.lineTo(7, 8); x.lineTo(0, 4); x.lineTo(-7, 8); x.closePath(); x.fill(); x.restore();
@@ -1073,7 +1074,7 @@ function zoomMap(f, sx = 260, sy = 260) {
   $("mapMe").addEventListener("click", () => { mapView.z = Math.max(mapView.z, 2.2); mapView.cx = player.pos.x; mapView.cz = player.pos.z; drawMap(); });
 }
 
-const travelOK = (p) => !!journal[p.id] || p.id === "sepaku";
+const travelOK = () => true; // every place is open for drone travel, in any order
 
 // ================= compass =================
 const comp = $("compass"), cctx = comp.getContext("2d");
@@ -1249,7 +1250,7 @@ const GUIDE = [
       <li><b>Golden hour</b> (pagi dan sore) dan <b>hujan</b> memberi nilai lebih.</li>
       <li>Ada <b>6 momen langka</b>, misalnya senja di Titik Nol dan Sumbu Kebangsaan di malam hari. Tahan <b>${K("T", "⏩ TUNGGU")}</b> untuk mempercepat waktu.</li></ul>` },
   { title: "Peta dan drone", body: () => `<ul>
-      <li>Buka <b>${K("peta (M)", "PETA")}</b>. Tempat yang sudah kamu potret ditandai ✈. Ketuk untuk terbang ke sana dengan drone.</li>
+      <li>Buka <b>${K("peta (M)", "PETA")}</b>, lalu ketuk tempat mana saja untuk langsung terbang ke sana dengan drone. Urutannya bebas.</li>
       <li>Rekor bintang dan rank fotografermu tersimpan di perangkat ini.</li>
       <li>Panduan ini bisa dibuka lagi kapan saja lewat tombol <b>?</b> di kanan layar.</li></ul>${GOATCOUNTER ? `<p class="load">Game ini mencatat statistik anonim tanpa nama dan tanpa cookie (GoatCounter) untuk menghitung jumlah pemain.</p>` : ""}` }
 ];
@@ -1293,7 +1294,7 @@ const COACH = [
   { t: () => isTouch ? "Dorong joystick <b>sampai ujung</b> untuk lari. Stamina ada di kiri bawah." : "Tekan <kbd>R</kbd> untuk lari, tekan lagi untuk berjalan.", done: (c) => player.vel > 3 || c.age > 14 },
   { t: () => isTouch ? "Saat muncul tulisan potret di bawah, tekan <b>FOTO</b>." : "Saat muncul tulisan potret di bawah, tekan <kbd>F</kbd>.", done: () => Object.keys(journal).length > 0 },
   { t: () => "Foto dinilai <span class=\"stars\">★–★★★</span>. Coba sudut atau jarak lain untuk nilai lebih tinggi.", done: (c) => c.age > 8 },
-  { t: () => isTouch ? "Ketuk <b>PETA</b>. Tempat bertanda ✈ bisa dituju dengan drone." : "Tekan <kbd>M</kbd> untuk peta. Tempat bertanda ✈ bisa dituju dengan drone.", done: () => !$("mapOv").hidden },
+  { t: () => isTouch ? "Ketuk <b>PETA</b>, lalu ketuk tempat mana saja untuk terbang ke sana." : "Tekan <kbd>M</kbd> untuk peta, lalu klik tempat mana saja untuk terbang ke sana.", done: () => !$("mapOv").hidden },
   { t: () => isTouch ? "Tahan <b>⏩ TUNGGU</b> di kanan untuk mempercepat waktu ke senja atau malam." : "Tahan <kbd>T</kbd> untuk mempercepat waktu ke senja atau malam.", done: (c) => waiting || c.age > 12 }
 ];
 let coach = null;
