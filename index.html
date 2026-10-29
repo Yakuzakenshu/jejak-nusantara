@@ -129,6 +129,25 @@
   .side button.on { background: var(--paper); color: var(--ink); }
   .side button:focus-visible { outline: 3px solid var(--ulin); outline-offset: 2px; }
   .stars { color: #F2C14E; letter-spacing: 1px; }
+  .obj .mis { display: block; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(243,238,226,.12); font: 600 12px var(--font-body); color: var(--paper); opacity: .9; }
+  .sense { position: fixed; left: 50%; bottom: max(128px, calc(env(safe-area-inset-bottom, 0px) + 128px)); transform: translateX(-50%); background: rgba(183,121,63,.92); color: #1E1A14; border-radius: 999px; padding: 6px 14px; font: 700 13px var(--font-body); white-space: nowrap; pointer-events: none; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; }
+  .guide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+  .sp { background: #1A2420; border: 1px solid rgba(243,238,226,.14); border-radius: 8px; padding: 8px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .sp .ph { width: 100%; aspect-ratio: 16/9; border-radius: 4px; object-fit: cover; background: #0B110E; display: grid; place-items: center; font: 800 28px var(--font-display); color: rgba(243,238,226,.25); }
+  .sp b { font-family: var(--font-display); font-size: 15px; line-height: 1.2; }
+  .sp i { font-size: 11px; opacity: .7; }
+  .sp .tag { align-self: flex-start; font: 700 10px var(--font-data); letter-spacing: .04em; border-radius: 4px; padding: 2px 6px; background: rgba(143,191,122,.18); color: var(--canopy); }
+  .sp .tag.khas { background: rgba(183,121,63,.2); color: #E0B07D; }
+  .sp p { margin: 0; font-size: 12px; line-height: 1.4; opacity: .88; }
+  .sp.locked b { opacity: .55; }
+  .missions { display: grid; gap: 8px; }
+  .mi { border: 1px solid rgba(243,238,226,.16); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; }
+  .mi.done { border-color: var(--canopy); background: rgba(143,191,122,.1); }
+  .mi b { font-family: var(--font-display); font-size: 16px; }
+  .mi span { font-size: 12.5px; opacity: .85; }
+  .mi .bar { height: 5px; }
+  .mi .bar i { background: var(--canopy); }
+  .sectionhead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 6px; }
   .moment { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); background: var(--ulin); color: #1E1A14; border-radius: 999px; padding: 8px 18px; font: 800 15px var(--font-body); box-shadow: 0 10px 30px rgba(0,0,0,.4); animation: drop .4s ease-out; pointer-events: none; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; }
   .moments { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
   .mom { border: 1px solid rgba(243,238,226,.18); border-radius: 10px; padding: 8px 10px; font-size: 13px; line-height: 1.35; min-width: 0; }
@@ -159,11 +178,12 @@
 
 <div class="hud" id="hud" hidden>
   <div class="top">
-    <div class="chip obj"><span>Tujuan terdekat</span><b id="objName">—</b><i id="objDist"></i></div>
+    <div class="chip obj"><span>Tujuan terdekat</span><b id="objName">—</b><i id="objDist"></i><span class="mis" id="misChip"></span></div>
     <canvas id="compass" width="640" height="60" aria-hidden="true"></canvas>
     <div class="chip meta">
       <div><span>Jurnal</span><b id="jCount">0/7</b></div>
       <div><span>Bintang</span><b id="sCount" class="stars">★ 0/21</b></div>
+      <div><span>Spesies</span><b id="spCount">0/10</b></div>
       <div><span>Waktu</span><b id="clock">06:40</b></div>
       <div><span>Cuaca</span><b id="weather">Cerah</b></div>
     </div>
@@ -182,6 +202,7 @@
     <button type="button" id="helpBtn" aria-label="Panduan">?<small>PANDUAN</small></button>
   </div>
   <div class="travel" id="travelTxt" hidden></div>
+  <div class="sense" id="sense" hidden></div>
   <div class="vf" id="vf" hidden><div class="g"></div><div class="c"></div><div class="lbl" id="vfLbl"></div></div>
   <div class="coach" id="coach" hidden><span class="n" id="coachN">1/6</span><p id="coachT"></p><button type="button" id="coachSkip">Lewati</button></div>
   <div class="keys"><kbd>WASD</kbd> jalan · <kbd>R</kbd>/<kbd>Shift</kbd> lari · <kbd>drag</kbd> kamera · <kbd>scroll</kbd> zoom · <kbd>V</kbd> drone<br><kbd>C</kbd> bidik · <kbd>F</kbd> foto · <kbd>T</kbd> tunggu · <kbd>M</kbd> peta &amp; lompat · <kbd>J</kbd> jurnal · <kbd>N</kbd> suara</div>
@@ -193,6 +214,7 @@
     <button type="button" id="tPhoto">FOTO</button>
     <button type="button" id="tRun">LARI</button>
     <button type="button" id="tMap">PETA</button>
+    <button type="button" id="tJournal">JURNAL</button>
   </div>
 </div>
 
@@ -226,6 +248,11 @@
 <div class="overlay" id="journalOv" hidden>
   <div class="card wide">
     <div class="row" style="justify-content:space-between"><div><span class="eyebrow" id="jEyebrow">Jurnal lapangan</span><h2 id="jTitle">Tujuh tempat di Nusantara</h2></div><button class="btn alt" type="button" data-close>Tutup</button></div>
+    <div class="sectionhead"><span class="eyebrow">Misi</span><span class="load" id="dailyLine"></span></div>
+    <div class="missions" id="misGrid"></div>
+    <div class="sectionhead"><span class="eyebrow" id="fgHead">Buku lapangan · satwa &amp; flora Kalimantan</span></div>
+    <div class="guide-grid" id="fgGrid"></div>
+    <div class="sectionhead"><span class="eyebrow">Tujuh tempat</span></div>
     <div class="grid" id="jGrid"></div>
     <div><span class="eyebrow">Momen langka</span><div class="moments" id="mGrid" style="margin-top:8px"></div></div>
     <div class="row"><button class="btn alt" type="button" id="copyBtn">Salin ringkasan</button><span class="load" id="copyStatus" aria-live="polite"></span></div>
@@ -622,6 +649,130 @@ const flock = [];
   for (let i = 0; i < 9; i++) { const b = new THREE.Mesh(g, m); b.userData = { cx: -120 + i * 8, cz: -40 + (i % 3) * 20, r: 30 + i * 3, h: 38 + i, sp: 0.15 + i * 0.01, ph: i }; scene.add(b); flock.push(b); }
 }
 
+// ================= wildlife & flora of Kalimantan =================
+const SPECIES = [
+  { id: "bekantan", name: "Bekantan", latin: "Nasalis larvatus", tag: "Endemik Borneo", iucn: "Terancam (EN)", x: -86, z: 60, h: 7, r: 26, kind: "primate",
+    when: () => hourNow() >= 6 && hourNow() < 18, whenTxt: "Siang, 06.00 sampai 18.00",
+    hint: "Primata berhidung besar di pepohonan tepi Sungai Sepaku.", fact: "Hidung besar bekantan jantan memperkuat suaranya. Mereka hidup di hutan tepi sungai dan mangrove, dan pandai berenang." },
+  { id: "orangutan", name: "Orangutan Kalimantan", latin: "Pongo pygmaeus", tag: "Endemik Borneo", iucn: "Kritis (CR)", x: -206, z: -122, h: 12, r: 28, kind: "primate",
+    when: () => hourNow() >= 6.5 && hourNow() < 17.5, whenTxt: "Siang, 06.30 sampai 17.30",
+    hint: "Kera besar berambut jingga, jauh di hutan barat daya.", fact: "Orangutan adalah satu-satunya kera besar di Asia. Setiap malam ia membuat sarang baru dari dahan di kanopi." },
+  { id: "owa", name: "Owa Kalimantan", latin: "Hylobates muelleri", tag: "Endemik Borneo", iucn: "Terancam (EN)", x: -166, z: 26, h: 14, r: 28, kind: "primate", call: true,
+    when: () => hourNow() >= 5.5 && hourNow() < 10, whenTxt: "Pagi, 05.30 sampai 10.00",
+    hint: "Dengarkan nyanyian bersahutan dari kanopi saat pagi.", fact: "Owa bergelantungan dengan lengan panjangnya dan bernyanyi bersahutan setiap pagi untuk menandai wilayahnya." },
+  { id: "kukang", name: "Kukang Kalimantan", latin: "Nycticebus borneanus", tag: "Endemik Borneo", iucn: "Rentan (VU)", x: -112, z: -82, h: 5, r: 18, kind: "primate",
+    when: () => hourNow() >= 19 || hourNow() < 5, whenTxt: "Malam, 19.00 sampai 05.00",
+    hint: "Mata besarnya memantulkan cahaya. Hanya keluar malam.", fact: "Kukang termasuk satu-satunya kelompok primata berbisa: kelenjar di lengannya menghasilkan racun." },
+  { id: "kucingmerah", name: "Kucing merah", latin: "Catopuma badia", tag: "Endemik Borneo", iucn: "Terancam (EN)", x: -226, z: -40, h: 0, r: 22, kind: "cat", rare: true,
+    when: () => (hourNow() >= 19 || hourNow() < 5) && catNight, whenTxt: "Sebagian malam saja, sangat langka",
+    hint: "Sangat langka. Tidak keluar setiap malam, dan berpindah tempat di hutan paling dalam.", fact: "Kucing merah termasuk kucing liar yang paling jarang terlihat di dunia. Foto di alamnya masih sangat sedikit." },
+  { id: "rangkong", name: "Rangkong badak", latin: "Buceros rhinoceros", tag: "Khas Kalimantan", iucn: "Rentan (VU)", x: -150, z: -60, h: 34, r: 45, kind: "bird",
+    when: () => hourNow() >= 7 && hourNow() < 17 && raining < 0.5, whenTxt: "Siang yang tidak hujan",
+    hint: "Terbang berputar di atas hutan barat. Kepakannya terdengar seperti deru angin.", fact: "Rangkong badak punya cula merah-jingga di atas paruh. Ia menyebarkan biji buah hutan, jadi penting bagi regenerasi hutan." },
+  { id: "beruang", name: "Beruang madu", latin: "Helarctos malayanus", tag: "Khas Kalimantan", iucn: "Rentan (VU)", x: -216, z: 56, h: 0, r: 24, kind: "bear",
+    when: () => hourNow() >= 6 && hourNow() < 19, whenTxt: "Pagi sampai senja",
+    hint: "Pencari madu berdada kuning di hutan barat laut.", fact: "Beruang madu adalah beruang terkecil di dunia. Lidahnya yang panjang dipakai menjilat madu dan rayap." },
+  { id: "anggrek", name: "Anggrek hitam", latin: "Coelogyne pandurata", tag: "Khas Kalimantan Timur", iucn: "Dilindungi", x: -136.4, z: -30.6, h: 3.2, r: 9, kind: "orchid", flora: true,
+    when: () => true, whenTxt: "Kapan saja",
+    hint: "Bunga kecil yang menempel di batang pohon ulin raksasa. Dekati sampai jarak dekat.", fact: "Anggrek hitam adalah flora identitas Kalimantan Timur. Bunganya hijau dengan bibir bergaris hitam pekat." },
+  { id: "kantong", name: "Kantong semar", latin: "Nepenthes sp.", tag: "Khas Kalimantan", iucn: "Dilindungi", x: -95, z: -55, h: 0, r: 9, kind: "pitcher", flora: true,
+    when: () => true, whenTxt: "Kapan saja",
+    hint: "Tumbuhan berkantong di lantai hutan, di antara pohon ulin dan sungai.", fact: "Kantong semar menjebak serangga dalam kantong berisi cairan pencerna. Borneo adalah rumah bagi banyak spesiesnya." },
+  { id: "tengkawang", name: "Tengkawang", latin: "Shorea stenoptera", tag: "Endemik Borneo", iucn: "Terancam", x: -186, z: -62, h: 18, r: 40, kind: "tree", flora: true,
+    when: () => true, whenTxt: "Kapan saja",
+    hint: "Pohon raksasa berpucuk kemerahan di hutan barat.", fact: "Biji tengkawang menghasilkan lemak nabati yang sejak lama dimanfaatkan masyarakat Dayak. Buahnya bersayap dan berputar saat jatuh." }
+];
+let catNight = false, dayCount = 0;
+const CAT_SPOTS = [[-226, -40], [-192, -172], [-236, 96]];
+function rollCat() { catNight = ((dayCount * 7919 + 3) % 10) < 4; const sp = CAT_SPOTS[dayCount % CAT_SPOTS.length]; const c = SPECIES.find((x) => x.id === "kucingmerah"); c.x = sp[0]; c.z = sp[1]; if (c.obj) c.obj.position.set(c.x, groundAt(c.x, c.z), c.z); }
+{
+  const mat = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, ...o });
+  const add = (parent, geo, m, x, y, z, sx = 1, sy = 1, sz = 1) => { const me = new THREE.Mesh(geo, m); me.position.set(x, y, z); me.scale.set(sx, sy, sz); me.castShadow = true; parent.add(me); return me; };
+  const sph = new THREE.SphereGeometry(1, 16, 12), cyl = new THREE.CylinderGeometry(1, 1, 1, 8);
+  function perch(x, z, h, len = 4) { // trunk with a branch to sit on
+    const g = groundAt(x, z);
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, h + 6, 8), mat(0x5a4632)); t.position.set(x - 1.2, g + (h + 6) / 2, z); t.castShadow = true; scene.add(t);
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, len, 6), mat(0x4e3523)); b.rotation.z = Math.PI / 2; b.position.set(x + len / 2 - 1.2, g + h - 0.15, z); b.castShadow = true; scene.add(b);
+    const cr = new THREE.Mesh(smoothIco(1, 2), mat(0x34552a)); cr.scale.set(5, 3, 5); cr.position.set(x - 1, g + h + 5, z); cr.castShadow = true; scene.add(cr);
+    colliders.push({ x0: x - 1.8, x1: x - 0.6, z0: z - 0.6, z1: z + 0.6 });
+  }
+  function primate(o) {
+    const g = new THREE.Group(), fur = mat(o.fur), face = mat(o.face);
+    const s = o.size;
+    add(g, sph, fur, 0, 0.55 * s, 0, 0.32 * s, 0.42 * s, 0.28 * s);                     // body
+    const head = add(g, sph, fur, 0, 1.05 * s, 0.05 * s, 0.2 * s, 0.2 * s, 0.2 * s);     // head
+    add(g, sph, face, 0, 1.03 * s, 0.2 * s, 0.13 * s, 0.12 * s, 0.06 * s);                // face
+    if (o.nose) add(g, sph, mat(0xd9906b), 0, 0.98 * s, 0.28 * s, 0.06 * s, 0.1 * s, 0.05 * s);
+    const eyeM = o.glow ? new THREE.MeshStandardMaterial({ color: 0xffd27a, emissive: 0xffb347, emissiveIntensity: 1.8 }) : mat(0x111111);
+    for (const sx of [-1, 1]) {
+      add(g, sph, eyeM, sx * 0.05 * s, 1.08 * s, 0.24 * s, (o.glow ? 0.045 : 0.025) * s, (o.glow ? 0.045 : 0.025) * s, 0.02 * s);
+      const arm = add(g, cyl, fur, sx * 0.3 * s, 0.6 * s, 0, 0.06 * s, o.arm * s, 0.06 * s); arm.rotation.z = sx * (o.hang ? -2.6 : -0.3);
+      const leg = add(g, cyl, fur, sx * 0.14 * s, 0.12 * s, 0.1 * s, 0.07 * s, 0.35 * s, 0.07 * s); leg.rotation.x = 1.2;
+    }
+    if (o.tail) { const tl = add(g, cyl, mat(o.tail), 0, 0.05 * s, -0.25 * s, 0.04 * s, 0.9 * s, 0.04 * s); tl.rotation.x = 0.25; }
+    g.userData.head = head; return g;
+  }
+  for (const sp of SPECIES) {
+    let obj;
+    const g = groundAt(sp.x, sp.z);
+    if (sp.kind === "primate") {
+      const cfg = { bekantan: { fur: 0xc9733c, face: 0xe7b48a, size: 1.2, arm: 0.45, nose: true, tail: 0xd9d2c4 },
+                    orangutan: { fur: 0xa8461f, face: 0x5a3a28, size: 1.5, arm: 0.8 },
+                    owa: { fur: 0x6b5a4c, face: 0x2a2420, size: 1.0, arm: 0.9, hang: true },
+                    kukang: { fur: 0x9a7b5a, face: 0xd8c3a5, size: 0.6, arm: 0.3, glow: true } }[sp.id];
+      perch(sp.x, sp.z, sp.h, sp.id === "owa" ? 5 : 4);
+      obj = primate(cfg); obj.position.set(sp.x, g + sp.h - (cfg.hang ? 1.35 * cfg.size : 0), sp.z);
+    } else if (sp.kind === "cat") {
+      obj = new THREE.Group(); const fur = mat(0xa2482a);
+      add(obj, sph, fur, 0, 0.38, 0, 0.42, 0.2, 0.2); add(obj, sph, fur, 0.48, 0.5, 0, 0.14, 0.13, 0.13);
+      for (const sx of [-1, 1]) add(obj, sph, mat(0xffd27a, { emissive: 0xffb347, emissiveIntensity: 1.6 }), 0.6, 0.53, sx * 0.05, 0.02, 0.02, 0.02);
+      for (const [lx, lz] of [[0.3, 0.12], [0.3, -0.12], [-0.3, 0.12], [-0.3, -0.12]]) add(obj, cyl, fur, lx, 0.16, lz, 0.05, 0.32, 0.05);
+      const tl = add(obj, cyl, fur, -0.7, 0.4, 0, 0.04, 0.7, 0.04); tl.rotation.z = 1.2;
+      obj.position.set(sp.x, g, sp.z); obj.rotation.y = 0.8;
+    } else if (sp.kind === "bear") {
+      obj = new THREE.Group(); const fur = mat(0x161412);
+      add(obj, sph, fur, 0, 0.55, 0, 0.6, 0.42, 0.38); add(obj, sph, fur, 0.62, 0.72, 0, 0.26, 0.24, 0.24);
+      add(obj, sph, mat(0xd9a441), 0.42, 0.72, 0, 0.12, 0.16, 0.26); add(obj, sph, mat(0xc9a27a), 0.84, 0.68, 0, 0.1, 0.08, 0.1);
+      for (const [lx, lz] of [[0.35, 0.22], [0.35, -0.22], [-0.35, 0.22], [-0.35, -0.22]]) add(obj, cyl, fur, lx, 0.2, lz, 0.1, 0.4, 0.1);
+      obj.position.set(sp.x, g, sp.z); obj.rotation.y = -0.6;
+      const hive = add(scene, sph, mat(0x8a6a2a), sp.x + 1.8, g + 3.2, sp.z - 0.6, 0.35, 0.5, 0.35);
+      const tr = add(scene, new THREE.CylinderGeometry(0.4, 0.6, 9, 8), mat(0x5a4632), sp.x + 2.4, g + 4.5, sp.z - 0.6); colliders.push({ x0: sp.x + 1.8, x1: sp.x + 3, z0: sp.z - 1.2, z1: sp.z });
+    } else if (sp.kind === "bird") {
+      obj = hornbill.clone(true); obj.scale.setScalar(1.9); obj.position.set(sp.x, g + sp.h, sp.z);
+    } else if (sp.kind === "orchid") {
+      obj = new THREE.Group();
+      for (let i = 0; i < 4; i++) { const f = new THREE.Group(); f.position.set(0, i * 0.18, i * 0.12);
+        for (let k = 0; k < 5; k++) { const pet = add(f, sph, mat(0x9fd37a), Math.cos(k * 1.26) * 0.12, Math.sin(k * 1.26) * 0.12, 0, 0.1, 0.04, 0.02); pet.rotation.z = k * 1.26; }
+        add(f, sph, mat(0x111111), 0, -0.02, 0.04, 0.06, 0.07, 0.03); obj.add(f); }
+      add(obj, cyl, mat(0x4d7a2e), 0, 0.3, -0.05, 0.02, 0.8, 0.02);
+      obj.position.set(sp.x, g + sp.h, sp.z); obj.rotation.y = 0.5;
+    } else if (sp.kind === "pitcher") {
+      obj = new THREE.Group();
+      for (let i = 0; i < 6; i++) { const a = i * 1.05, rr = 0.5 + (i % 2) * 0.3; const pc = add(obj, new THREE.CylinderGeometry(0.11, 0.07, 0.42, 10, 1, true), mat(i % 2 ? 0x8a2b2b : 0x6f9a3a, { side: THREE.DoubleSide }), Math.cos(a) * rr, 0.22, Math.sin(a) * rr); pc.rotation.x = 0.1; add(obj, sph, mat(0x5f8a33), Math.cos(a) * rr * 0.6, 0.05, Math.sin(a) * rr * 0.6, 0.25, 0.03, 0.08).rotation.y = -a; }
+      obj.position.set(sp.x, g, sp.z);
+    } else if (sp.kind === "tree") {
+      obj = new THREE.Group(); const H2 = 32;
+      add(obj, new THREE.CylinderGeometry(0.9, 1.5, H2, 10), mat(0x6b5440), 0, H2 / 2, 0);
+      const cm = new THREE.Mesh(smoothIco(1, 3), mat(0x4f6e2c)); cm.scale.set(10, 5, 10); cm.position.y = H2 + 2; cm.castShadow = true; obj.add(cm);
+      for (let i = 0; i < 7; i++) { const a = i * 0.9; const r2 = new THREE.Mesh(smoothIco(1, 2), mat(0xb5532e)); r2.scale.set(2.4, 1.3, 2.4); r2.position.set(Math.cos(a) * 7, H2 + 3 + (i % 3), Math.sin(a) * 7); obj.add(r2); }
+      obj.position.set(sp.x, g - 0.3, sp.z); colliders.push({ x0: sp.x - 1.6, x1: sp.x + 1.6, z0: sp.z - 1.6, z1: sp.z + 1.6 });
+    }
+    sp.obj = obj; scene.add(obj);
+  }
+  rollCat();
+}
+function speciesPos(sp, out) { out.set(sp.x, groundAt(sp.x, sp.z) + (sp.kind === "bird" ? sp.h : sp.kind === "tree" ? sp.h : sp.h + 0.6), sp.z); if (sp.kind === "bird" && sp.obj) out.copy(sp.obj.position); return out; }
+function updateWildlife(dt, t) {
+  for (const sp of SPECIES) {
+    const on = sp.when(); if (!sp.obj) continue; sp.obj.visible = on;
+    if (!on) continue;
+    if (sp.kind === "primate") { sp.obj.rotation.y = Math.sin(t * 0.4 + sp.x) * 0.8; if (sp.obj.userData.head) sp.obj.userData.head.rotation.y = Math.sin(t * 1.3 + sp.z) * 0.5; if (sp.id === "owa") sp.obj.rotation.z = Math.sin(t * 1.6) * 0.15; }
+    else if (sp.kind === "bird") { const a = t * 0.12; const g = groundAt(sp.x, sp.z); sp.obj.position.set(sp.x + Math.cos(a) * 42, g + sp.h + Math.sin(t * 0.5) * 3, sp.z + Math.sin(a) * 42); sp.obj.rotation.y = -a; sp.obj.rotation.z = Math.sin(t * 6) * 0.2; }
+    else if (sp.kind === "cat") { sp.obj.rotation.y = 0.8 + Math.sin(t * 0.3) * 0.6; }
+    else if (sp.kind === "bear") { sp.obj.position.x = sp.x + Math.sin(t * 0.15) * 2; sp.obj.rotation.y = Math.cos(t * 0.15) > 0 ? -0.6 : 2.5; }
+  }
+}
+
 // ================= rain =================
 const RAIN_N = 2600;
 const rainGeo = new THREE.BufferGeometry(); const rainPos = new Float32Array(RAIN_N * 6);
@@ -778,6 +929,7 @@ stick.addEventListener("pointerup", endJoy); stick.addEventListener("pointercanc
 function moveJoy(e) { const r = stick.getBoundingClientRect(); let dx = (e.clientX - r.left - r.width / 2) / (r.width / 2), dy = (e.clientY - r.top - r.height / 2) / (r.height / 2); const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; } joy.x = dx; joy.y = dy; knob.style.transform = `translate(${dx * 36}px, ${dy * 36}px)`; }
 $("tPhoto").addEventListener("click", () => takePhoto());
 $("tMap").addEventListener("click", () => toggle("mapOv"));
+$("tJournal").addEventListener("click", () => toggle("journalOv"));
 $("tRun").addEventListener("click", () => setRun(!runToggle));
 $("runBtn").addEventListener("click", (e) => { setRun(!runToggle); e.currentTarget.blur(); });
 function toggle(id) { const el = $(id); const show = el.hidden; $("mapOv").hidden = true; $("journalOv").hidden = true; el.hidden = !show; if (show && id === "mapOv") drawMap(); if (show && id === "journalOv") renderJournal(false); }
@@ -835,10 +987,10 @@ const MOMENTS = [
   { id: "sumbumalam", name: "Sumbu bercahaya", hint: "Sumbu Kebangsaan setelah 19.00 dan sebelum 05.00", ok: (p) => p.id === "sumbu" && (hourNow() >= 19 || hourNow() < 5) },
   { id: "garudabadai", name: "Garuda di bawah badai", hint: "Istana Garuda saat hujan lebat", ok: (p) => p.id === "garuda" && raining > 0.6 }
 ];
-const RANKS = [[0, "Fotografer Pemula"], [7, "Jurnalis Lapangan"], [13, "Fotografer Senior"], [20, "Penjelajah Nusantara"], [27, "Legenda Nusantara"]];
+const RANKS = [[0, "Fotografer Pemula"], [10, "Jurnalis Lapangan"], [25, "Fotografer Senior"], [45, "Penjelajah Nusantara"], [70, "Legenda Nusantara"]];
 const totalStars = () => Object.values(journal).reduce((a, j) => a + j.stars, 0);
 const totalMoments = () => Object.keys(moments).length;
-const points = () => totalStars() + totalMoments() * 2;
+const points = () => totalStars() + totalMoments() * 2 + Object.keys(spSeen).length * 3 + Object.keys(exp.missions).length * 5;
 const rankName = (pts) => { let r = RANKS[0][1]; for (const [min, n] of RANKS) if (pts >= min) r = n; return r; };
 let record = { stars: 0, moments: 0, rank: "" };
 try { record = JSON.parse(localStorage.getItem("jn_record")) || record; } catch (e) {}
@@ -846,7 +998,7 @@ function saveRecord() {
   const pts = points(), best = record.stars + record.moments * 2;
   if (pts > best) { record = { stars: totalStars(), moments: totalMoments(), rank: rankName(pts) }; try { localStorage.setItem("jn_record", JSON.stringify(record)); } catch (e) {} }
 }
-$("recordLine").textContent = record.stars ? `Rekor kamu: ★ ${record.stars}/21 · momen ${record.moments}/6 · ${record.rank}` : "Foto terbaik dinilai ★ sampai ★★★. Golden hour, hujan, dan malam membuka momen langka.";
+function setRecordLine() { $("recordLine").textContent = Object.keys(spSeen).length ? `Buku lapangan: ${Object.keys(spSeen).length}/10 spesies · misi ${Object.keys(exp.missions).length}/5 · rekor ★ ${record.stars}/21` : record.stars ? `Rekor kamu: ★ ${record.stars}/21 · momen ${record.moments}/6 · ${record.rank}` : "Foto terbaik dinilai ★ sampai ★★★. Golden hour, hujan, dan malam membuka momen langka."; }
 
 function nearestPOI() {
   let best = null, bd = 1e9;
@@ -881,10 +1033,75 @@ function scorePhoto(v) {
   if (light < 0.5 && !rainB) tips.push("coba saat golden hour");
   return { stars: total < 0.5 ? 1 : total < 0.78 ? 2 : 3, tip: tips[0] || "" };
 }
+// ================= expedition: field guide, missions, daily mission =================
+const spSeen = {};   // id -> { thumb, stars, at }
+let exp = { missions: {}, daily: null, streak: 0, lastDaily: null };
+try { Object.assign(spSeen, JSON.parse(localStorage.getItem("jn_species") || "{}")); exp = Object.assign(exp, JSON.parse(localStorage.getItem("jn_exp") || "{}")); } catch (e) {}
+const saveExp = () => { try { localStorage.setItem("jn_species", JSON.stringify(spSeen)); localStorage.setItem("jn_exp", JSON.stringify(exp)); } catch (e) {} };
+const MISSIONS = [
+  { id: "primata", name: "Primata Borneo", need: ["bekantan", "orangutan", "owa", "kukang"], reward: "Lensa tele ≈170 mm di mode bidik" },
+  { id: "malam", name: "Penghuni malam", need: ["kukang", "kucingmerah"], reward: "Mode malam: bidikan lebih terang setelah gelap" },
+  { id: "flora", name: "Flora hutan Kalimantan", need: ["anggrek", "kantong", "tengkawang"], reward: "Lensa makro: foto tumbuhan kecil lebih mudah ★★★" },
+  { id: "langit", name: "Penguasa kanopi", need: ["rangkong", "owa", "orangutan"], reward: "Gelar \"Pengamat Kanopi\"" },
+  { id: "lengkap", name: "Naturalis Borneo", need: SPECIES.map((x) => x.id), reward: "Gelar \"Naturalis Borneo\" dan bingkai emas di jurnal" }
+];
+const hasReward = (id) => !!exp.missions[id];
+const spCount = () => Object.keys(spSeen).length;
+const todayKey = () => new Date().toISOString().slice(0, 10);
+function dailyMission() {
+  const k = todayKey(); let h = 0; for (const ch of k) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const pool = SPECIES.filter((x) => !x.rare);
+  return { key: k, sp: pool[h % pool.length], place: POIS[(h >> 5) % POIS.length] };
+}
+const todayShots = { sp: new Set(), place: new Set() };
+function checkMissions() {
+  const done = [];
+  for (const m of MISSIONS) if (!exp.missions[m.id] && m.need.every((id) => spSeen[id])) { exp.missions[m.id] = todayKey(); done.push(m); track("misi-" + m.id, "Misi: " + m.name); }
+  const d = dailyMission();
+  if (exp.daily !== d.key && todayShots.sp.has(d.sp.id) && todayShots.place.has(d.place.id)) {
+    const y = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    exp.streak = exp.lastDaily === y ? exp.streak + 1 : 1; exp.lastDaily = d.key; exp.daily = d.key; done.push({ name: `Misi harian (${exp.streak} hari beruntun)`, reward: "" }); track("misi-harian", "Menyelesaikan misi harian");
+  }
+  if (done.length) { saveExp(); setTimeout(() => { const m = document.createElement("div"); m.className = "moment"; m.textContent = `🎯 Misi selesai: ${done.map((x) => x.name).join(", ")}${done[0].reward ? " · hadiah: " + done[0].reward : ""}`; document.body.appendChild(m); setTimeout(() => m.remove(), 5200); chime(); }, 1400); }
+}
+const spV = new THREE.Vector3();
+function speciesInView() {
+  camera.getWorldDirection(camDir);
+  let best = null, bestA = 0.36;
+  for (const sp of SPECIES) {
+    if (!sp.when() || !sp.obj || !sp.obj.visible) continue;
+    speciesPos(sp, spV);
+    const dx = spV.x - camera.position.x, dy = spV.y - camera.position.y, dz = spV.z - camera.position.z, d = Math.hypot(dx, dy, dz);
+    if (d > sp.r) continue;
+    const ang = Math.acos(clamp((dx * camDir.x + dy * camDir.y + dz * camDir.z) / d, -1, 1));
+    if (ang < bestA) { bestA = ang; best = { s: sp, ang, dist: d }; }
+  }
+  return best;
+}
+function thumbOf(img) {
+  return new Promise((res) => { const im = new Image(); im.onload = () => { const c = document.createElement("canvas"); c.width = 240; c.height = 135; c.getContext("2d").drawImage(im, 0, 0, 240, 135); try { res(c.toDataURL("image/jpeg", 0.7)); } catch (e) { res(img); } }; im.onerror = () => res(""); im.src = img; });
+}
+async function handleSpecies(v, img) {
+  const sp = v.s, first = !spSeen[sp.id];
+  const sc = scorePhoto({ p: { id: sp.id, r: (sp.flora && hasReward("flora")) ? sp.r * 0.7 : sp.r }, ang: v.ang * (0.42 / 0.36), dist: v.dist });
+  const prev = spSeen[sp.id];
+  if (!prev || sc.stars >= prev.stars) spSeen[sp.id] = { thumb: await thumbOf(img), stars: sc.stars, at: clockText() };
+  todayShots.sp.add(sp.id); saveExp();
+  if (first) track("spesies-" + sp.id, "Spesies: " + sp.name);
+  const slot = $("toastSlot");
+  slot.innerHTML = `<div class="toast"><img alt=""><h3></h3><p></p><small></small></div>`;
+  slot.querySelector("img").src = img;
+  slot.querySelector("h3").innerHTML = `<span class="stars">${starStr(sc.stars)}</span> `; slot.querySelector("h3").append((first ? "Spesies baru! " : "") + sp.name);
+  slot.querySelector("p").textContent = first ? `${sp.latin} · ${sp.tag} · ${sp.iucn}. ${sp.fact}` : (prev && sc.stars > prev.stars ? `Foto lebih baik, naik ke ${starStr(sc.stars)}.` : "Sudah tercatat di buku lapangan.");
+  slot.querySelector("small").textContent = `Buku lapangan ${spCount()}/${SPECIES.length}` + (sc.stars < 3 && sc.tip ? ` · Tips ★★★: ${sc.tip}` : "");
+  clearTimeout(slot._t); slot._t = setTimeout(() => { slot.innerHTML = ""; }, 8000);
+  if (first) chime(sp.rare ? 1.4 : 0.8);
+  checkMissions(); saveRecord();
+}
 let pendingPhoto = null;
 function takePhoto() {
   if (!started || travel) return;
-  pendingPhoto = { view: poiInView() };
+  pendingPhoto = { view: poiInView(), sp: speciesInView() };
   shutter();
   const f = $("flash"); f.classList.add("on"); requestAnimationFrame(() => requestAnimationFrame(() => f.classList.remove("on")));
 }
@@ -898,10 +1115,10 @@ const starStr = (n) => "★".repeat(n) + "☆".repeat(3 - n);
 function handlePhoto(view, img) {
   const slot = $("toastSlot");
   if (!view) {
-    slot.innerHTML = `<div class="toast"><img alt=""><h3>Foto lepas</h3><p>Tidak ada tempat tujuan di bingkai. Dekati tempatnya dan arahkan kamera.</p></div>`; slot.querySelector("img").src = img;
+    slot.innerHTML = `<div class="toast"><img alt=""><h3>Foto lepas</h3><p>Tidak ada tempat atau satwa di tengah bingkai. Dekati dan arahkan kamera ke objeknya.</p></div>`; slot.querySelector("img").src = img;
     clearTimeout(slot._t); slot._t = setTimeout(() => { slot.innerHTML = ""; }, 3500); return;
   }
-  const { p } = view, sc = scorePhoto(view), prev = journal[p.id];
+  const { p } = view, sc = scorePhoto(view), prev = journal[p.id]; todayShots.place.add(p.id); setTimeout(checkMissions, 0);
   const improved = !prev || sc.stars >= prev.stars;
   if (improved) journal[p.id] = { img, stars: sc.stars, at: clockText() };
   const nPlaces = Object.keys(journal).length; track(`tempat-${nPlaces}-dari-7`, `Memotret ${nPlaces} dari 7 tempat`);
@@ -921,7 +1138,30 @@ function handlePhoto(view, img) {
   saveRecord();
   if (Object.keys(journal).length === POIS.length && !finished) { finished = true; setTimeout(() => { renderJournal(true); $("journalOv").hidden = false; }, 2500); }
 }
+function renderExpedition() {
+  const d = dailyMission();
+  $("dailyLine").textContent = exp.daily === d.key ? `Misi harian selesai ✓ · ${exp.streak} hari beruntun` : `Misi harian: potret ${d.sp.name} dan ${d.place.name} hari ini${exp.streak ? ` · rekor ${exp.streak} hari beruntun` : ""}`;
+  const mg = $("misGrid"); mg.innerHTML = "";
+  for (const m of MISSIONS) {
+    const got = m.need.filter((id) => spSeen[id]).length, done = !!exp.missions[m.id];
+    const el = document.createElement("div"); el.className = "mi" + (done ? " done" : "");
+    el.innerHTML = `<b></b><span></span><div class="bar"><i style="width:${100 * got / m.need.length}%"></i></div>`;
+    el.querySelector("b").textContent = (done ? "✓ " : "🎯 ") + m.name + ` · ${got}/${m.need.length}`;
+    el.querySelector("span").textContent = (done ? "Hadiah terbuka: " : "Hadiah: ") + m.reward;
+    mg.appendChild(el);
+  }
+  $("fgHead").textContent = `Buku lapangan · satwa & flora Kalimantan · ${spCount()}/${SPECIES.length}`;
+  const fg = $("fgGrid"); fg.innerHTML = "";
+  for (const sp of SPECIES) {
+    const s = spSeen[sp.id], el = document.createElement("div"); el.className = "sp" + (s ? "" : " locked");
+    el.innerHTML = s ? `<img class="ph" alt=""><b></b><i></i><span class="tag"></span><p></p>` : `<div class="ph">?</div><b>???</b><i></i><p></p>`;
+    if (s) { el.querySelector("img").src = s.thumb; el.querySelector("b").innerHTML = `<span class="stars">${starStr(s.stars)}</span> `; el.querySelector("b").append(sp.name); el.querySelector("i").textContent = sp.latin + " · " + sp.iucn; const tg = el.querySelector(".tag"); tg.textContent = sp.tag; if (!/Endemik/.test(sp.tag)) tg.classList.add("khas"); el.querySelector("p").textContent = sp.fact; }
+    else { el.querySelector("i").textContent = sp.whenTxt; el.querySelector("p").textContent = sp.hint; }
+    fg.appendChild(el);
+  }
+}
 function renderJournal(done) {
+  renderExpedition();
   const pts = points();
   $("jEyebrow").textContent = `${rankName(pts)} · ★ ${totalStars()}/21 · momen ${totalMoments()}/6`;
   $("jTitle").textContent = done ? "Jurnal lengkap. Sekarang kejar ★★★ dan momen langka" : `Tujuh tempat di Nusantara · ${Object.keys(journal).length}/7`;
@@ -956,7 +1196,7 @@ function setPhotoMode(on) {
   track("mode-bidik", "Memakai mode bidik");
 }
 function pmLook(dx, dy, k) { pm.yaw -= dx * k; pm.pitch = clamp(pm.pitch - dy * k, -1.45, 1.45); }
-function pmZoom(f) { pm.fov = clamp(pm.fov * f, 16, 80); }
+function pmZoom(f) { pm.fov = clamp(pm.fov * f, hasReward("primata") ? 8 : 16, 80); }
 function updatePhotoMode(dt) {
   let ix = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
   let iz = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
@@ -972,8 +1212,9 @@ function updatePhotoMode(dt) {
   camera.position.copy(pm.pos); pmEuler.set(pm.pitch, pm.yaw, 0); camera.quaternion.setFromEuler(pmEuler);
   if (Math.abs(camera.fov - pm.fov) > 0.01) { camera.fov = pm.fov; camera.updateProjectionMatrix(); }
   const mm = Math.round(12 / Math.tan((pm.fov * Math.PI / 180) / 2));
-  const v = poiInView();
-  $("vfLbl").innerHTML = `MODE BIDIK · lensa <b>≈${mm} mm</b> · ` + (v ? `${isTouch ? "tekan FOTO" : "tekan F"}: ${v.p.name}` : "cari tempat tujuan di tengah bingkai") + ` · ${isTouch ? "📷 untuk keluar" : "C untuk keluar"}`;
+  const v = poiInView(), sv = speciesInView();
+  const tgt = sv && (!v || sv.ang < v.ang) ? (spSeen[sv.s.id] ? sv.s.name : "satwa atau tumbuhan misterius") : v ? v.p.name : "";
+  $("vfLbl").innerHTML = `MODE BIDIK · lensa <b>≈${mm} mm</b> · ` + (tgt ? `${isTouch ? "tekan FOTO" : "tekan F"}: ${tgt}` : "cari objek di tengah bingkai") + ` · ${isTouch ? "📷 untuk keluar" : "C untuk keluar"}`;
 }
 $("pmBtn").addEventListener("click", (e) => { setPhotoMode(!pm); e.currentTarget.blur(); });
 for (const [id, v] of [["pmUp", 1], ["pmDown", -1]]) {
@@ -1092,6 +1333,7 @@ function drawCompass() {
     const a = Math.atan2(p.x - player.pos.x, p.z - player.pos.z), x = toX(a); if (x === null) continue;
     cctx.fillStyle = "#8FBF7A"; cctx.beginPath(); cctx.moveTo(x, 12); cctx.lineTo(x + 7, 22); cctx.lineTo(x, 32); cctx.lineTo(x - 7, 22); cctx.closePath(); cctx.fill();
   }
+  if (senseTarget) { const x = toX(Math.atan2(senseTarget.x - player.pos.x, senseTarget.z - player.pos.z)); if (x !== null) { cctx.fillStyle = "#E0B07D"; cctx.font = "800 22px Inter, sans-serif"; cctx.fillText("?", x, h / 2); } }
   cctx.fillStyle = "#F3EEE2"; cctx.fillRect(w / 2 - 1, 8, 2, 8);
 }
 
@@ -1103,7 +1345,7 @@ function weatherText() { return raining > 0.5 ? "Hujan" : raining > 0.15 ? "Geri
 const sunV = new THREE.Vector3(), fogDay = new THREE.Color(0xc4d3c4), fogRain = new THREE.Color(0x8e9a98), fogNight = new THREE.Color(0x0d1418), fogC = new THREE.Color();
 function updateSky(dt) {
   const tdt = dt * (waiting ? 45 : 1);
-  dayT = (dayT + tdt / DAY_LEN) % 1;
+  const prevDayT = dayT; dayT = (dayT + tdt / DAY_LEN) % 1; if (dayT < prevDayT) { dayCount++; rollCat(); }
   const ang = (dayT - 0.25) * TAU; const elev = Math.sin(ang) * 1.15, az = Math.PI * 0.6 + ang * 0.25; sunElev = elev;
   sunV.setFromSphericalCoords(1, Math.PI / 2 - elev, az);
   skyU.sunPosition.value.copy(sunV);
@@ -1117,7 +1359,7 @@ function updateSky(dt) {
   hemi.intensity = lerp(0.14, lerp(1.25, 0.9, raining), dayK);
   fogC.copy(fogNight).lerp(fogDay, dayK).lerp(fogRain, raining * dayK * 0.9);
   scene.fog.color.copy(fogC); scene.fog.density = (lerp(0.0028, 0.011, raining) + (1 - dayK) * 0.002) * lerp(1, 0.45, smooth(8, 30, camDist) + (travel ? 0.6 : 0));
-  renderer.toneMappingExposure = lerp(0.34, lerp(0.68, 0.52, raining), dayK);
+  renderer.toneMappingExposure = lerp(0.34, lerp(0.68, 0.52, raining), dayK) * (pm && hasReward("malam") ? lerp(2.4, 1, dayK) : 1);
   M.lampHead.emissiveIntensity = (1 - dayK) * 3 + raining * 0.6;
   water.material.color.setHSL(0.45, 0.25, lerp(0.05, 0.16, dayK));
   // lightning
@@ -1182,12 +1424,23 @@ function updateCamera(dt) {
   const minY = groundAt(camPos.x, camPos.z) + 0.5; if (camPos.y < minY) camPos.y = minY;
   camera.position.lerp(camPos, Math.min(1, dt * 10)); camera.lookAt(camTarget);
 }
+let senseTarget = null, rustleT = 3, owaT = 5;
 function updateHUD() {
   const n = nearestPOI();
   if (n) { $("objName").textContent = n.p.name; $("objDist").textContent = `${Math.round(n.d)} m`; }
   else { const m = MOMENTS.find((x) => !moments[x.id]); $("objName").textContent = m ? `Momen: ${m.name}` : "Semua momen terkumpul"; $("objDist").textContent = m ? m.hint : ""; }
   $("jCount").textContent = `${Object.keys(journal).length}/7`; $("sCount").textContent = `★ ${totalStars()}/21`; $("clock").textContent = clockText(); $("weather").textContent = weatherText();
   $("stam").style.width = (player.stamina * 100) + "%";
+  $("spCount").textContent = `${spCount()}/${SPECIES.length}`;
+  { const m = MISSIONS.find((x) => !exp.missions[x.id]), d = dailyMission();
+    const dailyTxt = exp.daily === d.key ? "Misi harian selesai ✓" : `Harian: ${d.sp.name} + ${d.place.name}`;
+    $("misChip").textContent = (m ? `🎯 ${m.name} ${m.need.filter((id) => spSeen[id]).length}/${m.need.length}` : "🎯 Semua misi selesai") + " · " + dailyTxt; }
+  { let near = null, nd = 1e9; for (const sp of SPECIES) { if (spSeen[sp.id] || !sp.when()) continue; speciesPos(sp, spV); const d = Math.hypot(spV.x - player.pos.x, spV.z - player.pos.z); if (d < 55 && d < nd) { nd = d; near = sp; } }
+    const se = $("sense"); const sv = (!travel) ? speciesInView() : null;
+    if (sv) { se.hidden = false; se.textContent = spSeen[sv.s.id] ? `📷 ${sv.s.name} di bingkai, tekan ${isTouch ? "FOTO" : "F"}` : `📷 Ada satwa atau tumbuhan di bingkai! Tekan ${isTouch ? "FOTO" : "F"}`; }
+    else if (near) { se.hidden = false; se.textContent = `🐾 Ada tanda kehidupan sekitar ${Math.round(nd / 5) * 5} m dari sini. Cari dan arahkan kamera.`; }
+    else se.hidden = true;
+    senseTarget = near; }
   const v = poiInView(), pr = $("prompt");
   if (travel || pm) pr.hidden = true;
   else if (v) { pr.hidden = false; const j = journal[v.p.id]; pr.innerHTML = isTouch ? `Tekan FOTO untuk memotret ` : `<kbd>F</kbd> potret `; pr.append(v.p.name + (j ? ` (sekarang ${starStr(j.stars)})` : "")); }
@@ -1195,7 +1448,17 @@ function updateHUD() {
   else pr.hidden = true;
   drawCompass();
 }
+function owaCall() {
+  if (!ac || muted) return; const t0 = ac.currentTime;
+  for (let i = 0; i < 5; i++) { const o = ac.createOscillator(), g = ac.createGain(), st = t0 + i * 0.32; o.type = "sine"; o.frequency.setValueAtTime(700 + i * 90, st); o.frequency.exponentialRampToValueAtTime(1400 + i * 120, st + 0.22); g.gain.setValueAtTime(0.0001, st); g.gain.exponentialRampToValueAtTime(0.035, st + 0.06); g.gain.exponentialRampToValueAtTime(0.0001, st + 0.28); o.connect(g); g.connect(master); o.start(st); o.stop(st + 0.3); }
+}
 function animateWorld(dt, t) {
+  updateWildlife(dt, t);
+  if (started) {
+    owaT -= dt; const owa = SPECIES.find((x) => x.id === "owa");
+    if (owaT <= 0) { owaT = 7 + Math.random() * 6; if (owa.when() && Math.hypot(owa.x - player.pos.x, owa.z - player.pos.z) < 110) owaCall(); }
+    rustleT -= dt; if (rustleT <= 0) { rustleT = 5 + Math.random() * 5; if (senseTarget && senseTarget.kind !== "tree" && !senseTarget.flora) step(0.06, 300 + Math.random() * 200); }
+  }
   water.material.normalMap.offset.set(t * 0.004, t * 0.006);
   if (window.__flag) window.__flag.forEach((m, i) => { const p = m.geometry.attributes.position; for (let k = 0; k < p.count; k++) { const x = p.getX(k) + 1.5; p.setZ(k, Math.sin(x * 2 - t * 4) * 0.12 * (x / 3)); } p.needsUpdate = true; });
   hornbill.rotation.y = -0.9 + Math.sin(t * 0.7) * 0.35; hornbill.children[2].position.y = 0.35 + Math.sin(t * 3) * 0.02;
@@ -1217,7 +1480,8 @@ function loop() {
   updateCamera(dt); animateWorld(dt, t);
   renderer.render(scene, camera);
   if (pendingPhoto) {
-    const { view } = pendingPhoto; pendingPhoto = null; handlePhoto(view, grabFrame());
+    const { view, sp } = pendingPhoto; pendingPhoto = null; const img = grabFrame();
+    if (sp && (!view || sp.ang < view.ang)) handleSpecies(sp, img); else handlePhoto(view, img);
   }
   requestAnimationFrame(loop);
 }
@@ -1249,6 +1513,11 @@ const GUIDE = [
       <li>Setiap foto dinilai <span class="stars">★ sampai ★★★</span>: objek di tengah, jarak pas, dan cahaya bagus. Foto yang lebih baik menggantikan foto lama.</li>
       <li><b>Golden hour</b> (pagi dan sore) dan <b>hujan</b> memberi nilai lebih.</li>
       <li>Ada <b>6 momen langka</b>, misalnya senja di Titik Nol dan Sumbu Kebangsaan di malam hari. Tahan <b>${K("T", "⏩ TUNGGU")}</b> untuk mempercepat waktu.</li></ul>` },
+  { title: "Ekspedisi satwa dan flora", body: () => `<ul>
+      <li>Ada <b>10 satwa dan tumbuhan khas Kalimantan</b> yang tersembunyi: bekantan, orangutan, owa, kukang, kucing merah, dan lainnya.</li>
+      <li>Sebagian hanya muncul pada <b>jam atau cuaca tertentu</b>. Kukang keluar malam, owa bernyanyi pagi, dan kucing merah sangat langka.</li>
+      <li>Saat muncul <b>🐾 tanda kehidupan</b> dan <b>?</b> di kompas, berarti ada sesuatu di dekatmu. Buka <b>${K("jurnal (J)", "jurnal")}</b> untuk petunjuk di buku lapangan.</li>
+      <li>Selesaikan <b>misi</b> untuk hadiah seperti lensa tele dan mode malam, dan kerjakan <b>misi harian</b> yang berganti setiap hari.</li></ul>` },
   { title: "Peta dan drone", body: () => `<ul>
       <li>Buka <b>${K("peta (M)", "PETA")}</b>, lalu ketuk tempat mana saja untuk langsung terbang ke sana dengan drone. Urutannya bebas.</li>
       <li>Rekor bintang dan rank fotografermu tersimpan di perangkat ini.</li>
@@ -1311,6 +1580,7 @@ function updateCoach(dt) {
 }
 $("coachSkip").addEventListener("click", coachEnd);
 player.yaw = 2.53;
+setRecordLine();
 renderGuide();
 requestAnimationFrame(loop);
 </script>
