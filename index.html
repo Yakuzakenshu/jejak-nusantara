@@ -371,7 +371,7 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0xbfd1c4, 0.0032);
 const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 3000);
 
-const sky = new Sky(); sky.scale.setScalar(4000); scene.add(sky);
+const sky = new Sky(); sky.scale.setScalar(4000); scene.add(sky); sky.layers.set(1); camera.layers.enable(1);
 const skyU = sky.material.uniforms;
 skyU.turbidity.value = 6; skyU.rayleigh.value = 1.6; skyU.mieCoefficient.value = 0.006; skyU.mieDirectionalG.value = 0.85;
 
@@ -379,7 +379,7 @@ const hemi = new THREE.HemisphereLight(0xd7ecff, 0x3b4a2e, 0.9); scene.add(hemi)
 const sun = new THREE.DirectionalLight(0xfff1d6, 2.4);
 sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
 const sc = sun.shadow.camera; sc.left = -45; sc.right = 45; sc.top = 45; sc.bottom = -45; sc.near = 1; sc.far = 260; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.04;
-scene.add(sun); scene.add(sun.target);
+scene.add(sun); scene.add(sun.target); sun.shadow.camera.layers.enable(1);
 // moonlight + a headlamp on the photographer, so nights stay readable
 const moon = new THREE.DirectionalLight(0xa9bdf2, 0); moon.castShadow = false; scene.add(moon); scene.add(moon.target);
 const headlamp = new THREE.PointLight(0xffe6bf, 0, 26, 1.4); scene.add(headlamp);
@@ -403,7 +403,7 @@ const SIZE = 560, SEG = 210;
   }
   g.setAttribute("color", new THREE.BufferAttribute(col, 3)); g.computeVertexNormals();
   const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.97, metalness: 0 }));
-  m.receiveShadow = true; scene.add(m);
+  m.receiveShadow = true; scene.add(m); m.layers.set(1); // terrain occlusion for photos uses the height function instead of triangles
 }
 
 // --- water ---
@@ -442,6 +442,8 @@ const M = {
   craneLight: new THREE.MeshStandardMaterial({ color: 0xff2a2a, emissive: 0xff2a2a, emissiveIntensity: 2 })
 };
 const colliders = []; // AABB in xz
+// every mesh of a photo subject carries userData.subject, so a photo names what the lens actually sees
+function tagSince(n, id) { for (let i = n; i < scene.children.length; i++) scene.children[i].traverse((o) => { o.userData.subject = id; }); }
 function box(w, h, d, mat, x, y, z, opt = {}) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z);
   if (opt.ry) m.rotation.y = opt.ry; m.castShadow = opt.cast !== false; m.receiveShadow = true; scene.add(m);
@@ -472,13 +474,15 @@ function stiltHouse(x, z, ry) {
   const c = Math.cos(ry), s = Math.sin(ry);
   colliders.push({ x0: x - 3.8, x1: x + 3.8, z0: z - 3.4, z1: z + 3.4 });
 }
-[[-190, 140, 0.2], [-176, 128, -0.3], [-160, 150, 1.4], [-182, 164, 0.9], [-162, 170, -0.6], [-196, 118, 0.4]].forEach(([x, z, r]) => stiltHouse(x, z, r));
+{ const t0 = scene.children.length; [[-190, 140, 0.2], [-176, 128, -0.3], [-160, 150, 1.4], [-182, 164, 0.9], [-162, 170, -0.6], [-196, 118, 0.4]].forEach(([x, z, r]) => stiltHouse(x, z, r)); tagSince(t0, "sepaku"); }
 
 // --- intake building + pipes ---
+const __tIntake = scene.children.length;
 box(10, 4, 7, M.concrete, -36, 1.6 + 2, 98, { collide: true });
 box(10.4, 0.4, 7.4, M.zinc, -36, 1.6 + 4.2, 98);
 for (let i = 0; i < 2; i++) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 16, 12), M.zinc); p.rotation.z = Math.PI / 2; p.position.set(-48, 0.4, 95 + i * 3); p.castShadow = true; scene.add(p); }
 
+tagSince(__tIntake, "sungai");
 // --- bridge (ulin wood) ---
 {
   deckY = Math.max(H(BRIDGE.x0, BRIDGE.z), H(BRIDGE.x1, BRIDGE.z), 0.6) + 0.35;
@@ -525,7 +529,7 @@ for (let i = 0; i < 2; i++) { const p = new THREE.Mesh(new THREE.CylinderGeometr
 }
 
 // --- Sumbu Kebangsaan boulevard ---
-const lampHeads = [];
+const lampHeads = []; const __tSumbu = scene.children.length;
 {
   const len = AXIS.x1 - AXIS.x0, cx = (AXIS.x0 + AXIS.x1) / 2, cz = (AXIS.z0 + AXIS.z1) / 2;
   const road = new THREE.Mesh(new THREE.PlaneGeometry(len, 9).rotateX(-Math.PI / 2), M.asphalt); road.position.set(cx, AXIS.h + 0.04, cz - 7); road.receiveShadow = true; scene.add(road);
@@ -538,7 +542,9 @@ const lampHeads = [];
   }
 }
 
+tagSince(__tSumbu, "sumbu");
 // --- Titik Nol Nusantara ---
+const __tNol = scene.children.length;
 {
   const p = FLATS[4];
   const plaza = new THREE.Mesh(new THREE.CylinderGeometry(15, 15.5, 0.6, 48), M.paving); plaza.position.set(p.x, p.h + 0.1, p.z); plaza.receiveShadow = true; scene.add(plaza);
@@ -552,8 +558,10 @@ const lampHeads = [];
   const fw = new THREE.Mesh(new THREE.PlaneGeometry(3, 1, 12, 1), M.flagW); fw.position.set(1.5, -0.5, 0); flagG.add(fw);
   window.__flag = [fr, fw];
 }
+tagSince(__tNol, "titiknol");
 
 // --- Istana Garuda ---
+const __tGar = scene.children.length;
 {
   const x = 246, z = -40, b = 3;
   box(70, 6, 34, M.white, x + 6, b + 3, z, { collide: true });
@@ -573,6 +581,7 @@ const lampHeads = [];
   }
   scene.add(im);
 }
+tagSince(__tGar, "garuda");
 
 // ================= vegetation =================
 const exclusion = (x, z) => {
@@ -616,6 +625,7 @@ const exclusion = (x, z) => {
   });
   trunks.instanceMatrix.needsUpdate = true; crowns.instanceMatrix.needsUpdate = true; if (crowns.instanceColor) crowns.instanceColor.needsUpdate = true;
   scene.add(trunks, crowns);
+  window.__ulin = { trunks, crowns, i: pts.length - 1 };
 
   // undergrowth bushes + ferns
   const bushG = smoothIco(1, 2); bushG.computeVertexNormals();
@@ -643,6 +653,7 @@ const hornbill = new THREE.Group();
   hornbill.position.set(-131, H(-138, -32) + 20.5, -28); hornbill.rotation.y = -0.9; hornbill.scale.setScalar(1.6);
   hornbill.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   scene.add(hornbill);
+  hornbill.traverse((o) => { o.userData.subject = "enggang"; });
   box(9, 0.45, 0.45, M.woodDark, -134.5, H(-138, -32) + 20, -30, { ry: 0.7 });
 }
 // ambient birds
@@ -761,7 +772,7 @@ function rollCat() { catNight = ((dayCount * 7919 + 3) % 10) < 4; const sp = CAT
       for (let i = 0; i < 7; i++) { const a = i * 0.9; const r2 = new THREE.Mesh(smoothIco(1, 2), mat(0xb5532e)); r2.scale.set(2.4, 1.3, 2.4); r2.position.set(Math.cos(a) * 7, H2 + 3 + (i % 3), Math.sin(a) * 7); obj.add(r2); }
       obj.position.set(sp.x, g - 0.3, sp.z); colliders.push({ x0: sp.x - 1.6, x1: sp.x + 1.6, z0: sp.z - 1.6, z1: sp.z + 1.6 });
     }
-    sp.obj = obj; scene.add(obj);
+    obj.traverse((o) => { o.userData.subject = sp.id; }); sp.obj = obj; scene.add(obj);
   }
   rollCat();
 }
@@ -782,7 +793,7 @@ const RAIN_N = 2600;
 const rainGeo = new THREE.BufferGeometry(); const rainPos = new Float32Array(RAIN_N * 6);
 for (let i = 0; i < RAIN_N; i++) { const x = (Math.random() - 0.5) * 70, y = Math.random() * 35, z = (Math.random() - 0.5) * 70; rainPos.set([x, y, z, x + 0.05, y - 0.7, z], i * 6); }
 rainGeo.setAttribute("position", new THREE.BufferAttribute(rainPos, 3));
-const rain = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ color: 0xbfd6e6, transparent: true, opacity: 0 })); rain.frustumCulled = false; scene.add(rain);
+const rain = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ color: 0xbfd6e6, transparent: true, opacity: 0 })); rain.frustumCulled = false; scene.add(rain); rain.layers.set(1);
 
 // ================= character =================
 const player = { pos: new THREE.Vector3(-196, 0, 176), yaw: 0, vel: 0, stamina: 1, model: null, mixer: null, actions: {}, current: null };
@@ -850,7 +861,7 @@ Promise.all([load("./michelle-model.js", "a"), load("./walk-cycles.js", "b"), lo
     const model = g.scene;
     model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false; if (o.material) o.material.roughness = Math.max(0.55, o.material.roughness ?? 0.6); } });
     const tgtR = tp(g) ? worldRest(model, tp(g)) : tPoseRest(model);
-    const holder = new THREE.Group(); holder.add(model); holder.visible = false; scene.add(holder);
+    const holder = new THREE.Group(); holder.add(model); holder.visible = false; scene.add(holder); holder.traverse((o) => o.layers.set(1));
     const mixer = new THREE.AnimationMixer(model), actions = {};
     for (const n of ["idle", "walk", "run"]) {
       const clip = retargetWorld(anim.animations.find((x) => x.name === map[n]), src, srcR, model, tgtR);
@@ -1010,18 +1021,47 @@ function nearestPOI() {
   return best ? { p: best, d: bd } : null;
 }
 const camDir = new THREE.Vector3();
-function poiInView() {
-  camera.getWorldDirection(camDir);
-  let best = null, bestA = 1;
-  for (const p of POIS) {
-    const dx = p.x - camera.position.x, dy = p.y - camera.position.y, dz = p.z - camera.position.z, d = Math.hypot(dx, dy, dz);
-    const ref = pm ? camera.position : player.pos;
-    const dist = Math.hypot(p.x - ref.x, p.z - ref.z); if (dist > p.r) continue;
-    const ang = Math.acos(clamp((dx * camDir.x + dy * camDir.y + dz * camDir.z) / d, -1, 1));
-    if (ang < 0.42 && ang < bestA) { bestA = ang; best = { p, ang, dist }; }
-  }
-  return best;
+// What the lens sees: rays from the camera through the middle of the frame. The first thing each ray
+// hits wins, so trees or buildings in front block what is behind them, and a bird in front of a tree is the bird.
+const lens = new THREE.Raycaster(); lens.layers.set(0); lens.far = 150;
+const lensV2 = new THREE.Vector2(), lensC = new THREE.Vector3();
+const LENS_FULL = [[0, 0, 4]], LENS_QUICK = [[0, 0, 4]];
+for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; LENS_FULL.push([Math.cos(a) * 0.035, Math.sin(a) * 0.035, 2], [Math.cos(a + 0.4) * 0.08, Math.sin(a + 0.4) * 0.08, 1]); if (i % 2 === 0) LENS_QUICK.push([Math.cos(a) * 0.04, Math.sin(a) * 0.04, 2]); }
+const visibleChain = (o) => { for (let x = o; x; x = x.parent) if (!x.visible) return false; return true; };
+function subjectOf(o, inst) {
+  const U = window.__ulin;
+  if (U && ((o === U.trunks && inst === U.i) || (o === U.crowns && (inst === 2 * U.i || inst === 2 * U.i + 1)))) return "ulin";
+  for (let x = o; x; x = x.parent) if (x.userData && x.userData.subject) return x.userData.subject;
+  return null;
 }
+let aimCache = null, aimAt = -1;
+function aimSubject(force) {
+  const now = performance.now();
+  if (!force && now - aimAt < 140) return aimCache;
+  aimAt = now; camera.updateMatrixWorld(); camera.getWorldDirection(camDir);
+  const asp = camera.aspect || 1, votes = new Map();
+  for (const [ox, oy, w] of force ? LENS_FULL : LENS_QUICK) {
+    lens.setFromCamera(lensV2.set(ox / asp * 1.0, oy), camera);
+    const hits = lens.intersectObjects(scene.children, true);
+    const h = hits.find((x) => visibleChain(x.object)); if (!h) continue;
+    if (terrainBlocks(lens.ray.origin, lens.ray.direction, h.distance)) continue;
+    const id = subjectOf(h.object, h.instanceId); if (!id) continue;
+    const v = votes.get(id) || { w: 0, dist: h.distance, center: false }; v.w += w; v.dist = Math.min(v.dist, h.distance); if (ox === 0 && oy === 0) v.center = true; votes.set(id, v);
+  }
+  let best = null;
+  for (const [id, v] of votes) if (!best || v.w > best.v.w) best = { id, v };
+  aimCache = null;
+  if (best) {
+    const sp = SPECIES.find((x) => x.id === best.id), p = POIS.find((x) => x.id === best.id);
+    if (sp) { if (sp.when() && best.v.dist <= sp.r) { speciesPos(sp, lensC); aimCache = { kind: "sp", s: sp, dist: best.v.dist, ang: best.v.center ? 0.05 : angTo(lensC) }; } else aimCache = { kind: "far", name: spSeen[sp.id] ? sp.name : "objek itu", dist: best.v.dist }; }
+    else if (p) { const ref = pm ? camera.position : player.pos, d = Math.hypot(p.x - ref.x, p.z - ref.z);
+      if (d <= p.r) { lensC.set(p.x, p.y, p.z); aimCache = { kind: "poi", p, dist: d, ang: best.v.center ? Math.min(0.08, angTo(lensC)) : Math.min(0.4, angTo(lensC)) }; } else aimCache = { kind: "far", name: p.name, dist: d }; }
+  }
+  return aimCache;
+}
+function terrainBlocks(o, d, dist) { for (let t = 1.5; t < dist - 0.5; t += 1.5) { const x = o.x + d.x * t, y = o.y + d.y * t, z = o.z + d.z * t; if (y < H(x, z) - 0.2) return true; } return false; }
+function angTo(v) { const dx = v.x - camera.position.x, dy = v.y - camera.position.y, dz = v.z - camera.position.z, d = Math.hypot(dx, dy, dz) || 1; return Math.acos(clamp((dx * camDir.x + dy * camDir.y + dz * camDir.z) / d, -1, 1)); }
+function poiInView(force) { const a = aimSubject(force); return a && a.kind === "poi" ? { p: a.p, ang: a.ang, dist: a.dist } : null; }
 function scorePhoto(v) {
   const { p, ang, dist } = v;
   const framing = 1 - ang / 0.42;
@@ -1069,19 +1109,7 @@ function checkMissions() {
   if (done.length) { saveExp(); setTimeout(() => { const m = document.createElement("div"); m.className = "moment"; m.textContent = `🎯 Misi selesai: ${done.map((x) => x.name).join(", ")}${done[0].reward ? " · hadiah: " + done[0].reward : ""}`; document.body.appendChild(m); setTimeout(() => m.remove(), 5200); chime(); }, 1400); }
 }
 const spV = new THREE.Vector3();
-function speciesInView() {
-  camera.getWorldDirection(camDir);
-  let best = null, bestA = 0.36;
-  for (const sp of SPECIES) {
-    if (!sp.when() || !sp.obj || !sp.obj.visible) continue;
-    speciesPos(sp, spV);
-    const dx = spV.x - camera.position.x, dy = spV.y - camera.position.y, dz = spV.z - camera.position.z, d = Math.hypot(dx, dy, dz);
-    if (d > sp.r) continue;
-    const ang = Math.acos(clamp((dx * camDir.x + dy * camDir.y + dz * camDir.z) / d, -1, 1));
-    if (ang < bestA) { bestA = ang; best = { s: sp, ang, dist: d }; }
-  }
-  return best;
-}
+function speciesInView(force) { const a = aimSubject(force); return a && a.kind === "sp" ? { s: a.s, ang: a.ang, dist: a.dist } : null; }
 function thumbOf(img) {
   return new Promise((res) => { const im = new Image(); im.onload = () => { const c = document.createElement("canvas"); c.width = 240; c.height = 135; c.getContext("2d").drawImage(im, 0, 0, 240, 135); try { res(c.toDataURL("image/jpeg", 0.7)); } catch (e) { res(img); } }; im.onerror = () => res(""); im.src = img; });
 }
@@ -1105,7 +1133,7 @@ async function handleSpecies(v, img) {
 let pendingPhoto = null;
 function takePhoto() {
   if (!started || travel) return;
-  pendingPhoto = { view: poiInView(), sp: speciesInView() };
+  aimSubject(true); pendingPhoto = { view: poiInView(), sp: speciesInView(), far: aimCache && aimCache.kind === "far" ? aimCache : null };
   shutter();
   const f = $("flash"); f.classList.add("on"); requestAnimationFrame(() => requestAnimationFrame(() => f.classList.remove("on")));
 }
@@ -1116,10 +1144,10 @@ function grabFrame() {
   try { return c.toDataURL("image/jpeg", 0.78); } catch (e) { return ""; }
 }
 const starStr = (n) => "★".repeat(n) + "☆".repeat(3 - n);
-function handlePhoto(view, img) {
+function handlePhoto(view, img, far) {
   const slot = $("toastSlot");
   if (!view) {
-    slot.innerHTML = `<div class="toast"><img alt=""><h3>Foto lepas</h3><p>Tidak ada tempat atau satwa di tengah bingkai. Dekati dan arahkan kamera ke objeknya.</p></div>`; slot.querySelector("img").src = img;
+    slot.innerHTML = `<div class="toast"><img alt=""><h3>Foto lepas</h3><p></p></div>`; slot.querySelector("p").textContent = far ? `${far.name} terlihat, tapi masih terlalu jauh (${Math.round(far.dist)} m). Dekati lagi lalu potret.` : "Tidak ada tempat atau satwa tepat di lingkaran tengah bingkai. Arahkan bagian tengah kamera ke objeknya."; slot.querySelector("img").src = img;
     clearTimeout(slot._t); slot._t = setTimeout(() => { slot.innerHTML = ""; }, 3500); return;
   }
   const { p } = view, sc = scorePhoto(view), prev = journal[p.id]; todayShots.place.add(p.id); setTimeout(checkMissions, 0);
@@ -1452,6 +1480,7 @@ function updateHUD() {
   const v = poiInView(), pr = $("prompt");
   if (travel || pm) pr.hidden = true;
   else if (v) { pr.hidden = false; const j = journal[v.p.id]; pr.innerHTML = isTouch ? `Tekan FOTO untuk memotret ` : `<kbd>F</kbd> potret `; pr.append(v.p.name + (j ? ` (sekarang ${starStr(j.stars)})` : "")); }
+  else if (aimCache && aimCache.kind === "far") { pr.hidden = false; pr.textContent = `${aimCache.name} terlihat, tapi masih terlalu jauh. Dekati lagi.`; }
   else if (n && n.d < n.p.r) { pr.hidden = false; pr.textContent = `Arahkan kamera ke ${n.p.name}`; }
   else pr.hidden = true;
   drawCompass();
@@ -1488,8 +1517,8 @@ function loop() {
   updateCamera(dt); animateWorld(dt, t);
   renderer.render(scene, camera);
   if (pendingPhoto) {
-    const { view, sp } = pendingPhoto; pendingPhoto = null; const img = grabFrame();
-    if (sp && (!view || sp.ang < view.ang)) handleSpecies(sp, img); else handlePhoto(view, img);
+    const { view, sp, far } = pendingPhoto; pendingPhoto = null; const img = grabFrame();
+    if (sp) handleSpecies(sp, img); else handlePhoto(view, img, far);
   }
   requestAnimationFrame(loop);
 }
